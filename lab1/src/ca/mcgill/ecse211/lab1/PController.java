@@ -48,12 +48,62 @@ public class PController implements UltrasonicController {
     }
 
     // TODO: process a movement based on the us distance passed in (P style)
+    
+    int distError = this.distance - this.bandCenter;
+    int diff = calcGain(distError);
+    
+    if (Math.abs(distError) <= this.bandWidth) {
+    	WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED);
+        WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED);
+        WallFollowingLab.leftMotor.forward();
+        WallFollowingLab.rightMotor.forward();
+        
+    } else if (this.distance <= 15) { // extremely too close
+    	WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED);
+        WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED);
+        WallFollowingLab.leftMotor.forward();
+        WallFollowingLab.rightMotor.backward();
+        
+    } else if (distError > 0) { // too far
+    	WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED - diff);
+        WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED + diff);
+        WallFollowingLab.leftMotor.forward();
+        WallFollowingLab.rightMotor.forward();
+        
+    } else if (distError < 0) { // too close
+    	WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED + diff);
+        WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED - diff);
+        WallFollowingLab.leftMotor.forward();
+        WallFollowingLab.rightMotor.forward();
+    }
+    
   }
 
 
   @Override
   public int readUSDistance() {
     return this.distance;
+  }
+  
+  private int calcGain(int diff) {
+	  double propTooClose = 4.2;
+	  double propTooFar = 2.0;
+	  int maxCorrection;
+	  int correction;
+	  if (diff < 0) { // too close
+		  diff = Math.abs(diff);
+		  maxCorrection = 60;
+		  correction = (int) (propTooClose * (double) diff);
+	  } else { // too far
+		  maxCorrection = 43;
+		  correction = (int) (propTooFar * (double) diff);
+	  }
+	  
+	  if (correction >= maxCorrection) {
+		  correction = maxCorrection;
+	  }
+	  
+	  return correction;
   }
 
 }

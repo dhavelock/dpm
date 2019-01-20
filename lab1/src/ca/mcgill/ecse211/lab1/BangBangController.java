@@ -33,7 +33,6 @@ public class BangBangController implements UltrasonicController {
 
   @Override
   public void processUSData(int distance) {
-//    this.distance = distance;
     
     // added
     if (distance >= 255 && filterControl < FILTER_OUT) {
@@ -51,22 +50,30 @@ public class BangBangController implements UltrasonicController {
         this.distance = distance;
     }
     
-    // TODO: process a movement based on the us distance passed in (BANG-BANG style)
+    // TODO: process a movement based on the us distance passed in (BANG-BANG style)    
     int distError = this.distance - this.bandCenter;
     
     if (Math.abs(distError) <= this.bandwidth) {
-    	WallFollowingLab.leftMotor.setSpeed(motorHigh);
-        WallFollowingLab.rightMotor.setSpeed(motorHigh);
+    	WallFollowingLab.leftMotor.setSpeed(this.motorHigh);
+        WallFollowingLab.rightMotor.setSpeed(this.motorHigh);
         WallFollowingLab.leftMotor.forward();
         WallFollowingLab.rightMotor.forward();
-    } else if (distError > 0) {
-    	WallFollowingLab.leftMotor.setSpeed(motorLow);
-        WallFollowingLab.rightMotor.setSpeed(motorHigh);
+        
+    } else if (this.distance <= 15) { // extremely too close
+    	WallFollowingLab.leftMotor.setSpeed(this.motorLow);
+        WallFollowingLab.rightMotor.setSpeed(this.motorHigh);
+        WallFollowingLab.leftMotor.forward();
+        WallFollowingLab.rightMotor.backward();
+        
+    } else if (distError > 0) { // too far
+    	WallFollowingLab.leftMotor.setSpeed(this.motorLow + 30);
+        WallFollowingLab.rightMotor.setSpeed(this.motorHigh);
         WallFollowingLab.leftMotor.forward();
         WallFollowingLab.rightMotor.forward();
-    } else if (distError < 0) {
-    	WallFollowingLab.leftMotor.setSpeed(motorHigh);
-        WallFollowingLab.rightMotor.setSpeed(motorLow);
+        
+    } else if (distError < 0) { // too close
+    	WallFollowingLab.leftMotor.setSpeed(this.motorHigh);
+        WallFollowingLab.rightMotor.setSpeed(this.motorLow);
         WallFollowingLab.leftMotor.forward();
         WallFollowingLab.rightMotor.forward();
     }
