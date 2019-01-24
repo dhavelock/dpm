@@ -52,7 +52,7 @@ public class PController implements UltrasonicController {
     int distError = this.distance - this.bandCenter;
     int diff = calcGain(distError);
     
-    if (Math.abs(distError) <= this.bandWidth) {
+    if (Math.abs(distError) <= this.bandWidth) { // within desired bandwidth
     	WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED);
         WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED);
         WallFollowingLab.leftMotor.forward();
@@ -86,10 +86,13 @@ public class PController implements UltrasonicController {
   }
   
   private int calcGain(int diff) {
+	  // different proportions for each scenario
 	  double propTooClose = 4.2;
 	  double propTooFar = 2.0;
+	  
 	  int maxCorrection;
 	  int correction;
+	  
 	  if (diff < 0) { // too close
 		  diff = Math.abs(diff);
 		  maxCorrection = 60;
@@ -99,10 +102,9 @@ public class PController implements UltrasonicController {
 		  correction = (int) (propTooFar * (double) diff);
 	  }
 	  
-	  if (correction >= maxCorrection) {
+	  if (correction >= maxCorrection) { // set a cap on the maximum value
 		  correction = maxCorrection;
 	  }
-	  
 	  return correction;
   }
 

@@ -4,7 +4,6 @@ import lejos.hardware.motor.*;
 
 public class BangBangController implements UltrasonicController {
 	
-  // added
   private static final int FILTER_OUT = 20;
 
   private final int bandCenter;
@@ -13,7 +12,6 @@ public class BangBangController implements UltrasonicController {
   private final int motorHigh;
   private int distance;
   
-  // added
   private int filterControl;
 
   public BangBangController(int bandCenter, int bandwidth, int motorLow, int motorHigh) {
@@ -27,14 +25,13 @@ public class BangBangController implements UltrasonicController {
     WallFollowingLab.leftMotor.forward();
     WallFollowingLab.rightMotor.forward();
     
-    // added
     this.filterControl = 0;
   }
 
   @Override
   public void processUSData(int distance) {
-    
-    // added
+	// TODO: process a movement based on the us distance passed in (BANG-BANG style)    
+
     if (distance >= 255 && filterControl < FILTER_OUT) {
         // bad value, do not set the distance var, however do increment the
         // filter value
@@ -50,10 +47,9 @@ public class BangBangController implements UltrasonicController {
         this.distance = distance;
     }
     
-    // TODO: process a movement based on the us distance passed in (BANG-BANG style)    
     int distError = this.distance - this.bandCenter;
     
-    if (Math.abs(distError) <= this.bandwidth) {
+    if (Math.abs(distError) <= this.bandwidth) { // within desired bandwidth
     	WallFollowingLab.leftMotor.setSpeed(this.motorHigh);
         WallFollowingLab.rightMotor.setSpeed(this.motorHigh);
         WallFollowingLab.leftMotor.forward();
