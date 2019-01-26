@@ -13,10 +13,10 @@ public class Lab2 {
   private static final EV3LargeRegulatedMotor leftMotor =
       new EV3LargeRegulatedMotor(LocalEV3.get().getPort("A"));
   private static final EV3LargeRegulatedMotor rightMotor =
-      new EV3LargeRegulatedMotor(LocalEV3.get().getPort("B"));
+      new EV3LargeRegulatedMotor(LocalEV3.get().getPort("D"));
   private static final TextLCD lcd = LocalEV3.get().getTextLCD();
   public static final double WHEEL_RAD = 2.2;
-  public static final double TRACK = 17.0;
+  public static final double TRACK = 13.2; //17.0
 
   public static void main(String[] args) throws OdometerExceptions {
 

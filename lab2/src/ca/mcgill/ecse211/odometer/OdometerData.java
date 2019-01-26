@@ -208,5 +208,27 @@ public class OdometerData {
       lock.unlock();
     }
   }
+  
+  public double getTheta() {
+	  double t = 0;
+	    lock.lock();
+	    try {
+	      while (isReseting) { // If a reset operation is being executed, wait
+	        // until it is over.
+	        doneReseting.await(); // Using await() is lighter on the CPU
+	        // than simple busy wait.
+	      }
+
+	      t = theta;
+	
+	    } catch (InterruptedException e) {
+	      // Print exception to screen
+	      e.printStackTrace();
+	    } finally {
+	      lock.unlock();
+	    }
+	
+	    return t;
+  }
 
 }
