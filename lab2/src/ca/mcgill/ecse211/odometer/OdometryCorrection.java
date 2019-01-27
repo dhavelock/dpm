@@ -13,8 +13,9 @@ public class OdometryCorrection implements Runnable {
   private static final long CORRECTION_PERIOD = 10;
   private static final double TILE_LENGTH = 30.48;
   private static final double LIGHT_THRESHOLD = 0.10;
-  private static final double START_X = -15.0;
-  private static final double START_Y = -15.0;
+  private static final double START_X = 0.0;
+  private static final double START_Y = 0.0;
+  private static final double LIGHT_OFFSET = 2.7;
   
   private Odometer odometer;
 
@@ -66,23 +67,24 @@ public class OdometryCorrection implements Runnable {
       colourIntensity = lsData[0];
       double[] odoData = odometer.getXYT();
       theta = odoData[2];
-      
-            
+      boolean hitLine = false;
+                  
       if (colourIntensity <= LIGHT_THRESHOLD) {
+    	  hitLine = true;
     	  Sound.beep();
     	  
-    	  if (theta <= 20 || theta >= 340) {
-    		  odometer.setY(numYLines*TILE_LENGTH);
+    	  if (theta <= 10 || theta >= 350) {
+    		  odometer.setY(numYLines*TILE_LENGTH - LIGHT_OFFSET);
     		  numYLines++;
-    	  } else if (theta >= 70 && theta <= 110) {
-    		  odometer.setX(numXLines*TILE_LENGTH);
+    	  } else if (theta >= 80 && theta <= 100) {
+    		  odometer.setX(numXLines*TILE_LENGTH - LIGHT_OFFSET);
     		  numXLines++;
-    	  } else if (theta >= 160 && theta <= 200) {
+    	  } else if (theta >= 170 && theta <= 190) {
     		  numYLines--;
-    		  odometer.setY(numYLines*TILE_LENGTH);
-    	  } else if (theta >= 250 && theta <= 290) {
+    		  odometer.setY(numYLines*TILE_LENGTH + LIGHT_OFFSET);
+    	  } else if (theta >= 260 && theta <= 280) {
     		  numXLines--;
-    		  odometer.setX(numXLines*TILE_LENGTH);
+    		  odometer.setX(numXLines*TILE_LENGTH + LIGHT_OFFSET);
     	  }
     	  
       }
@@ -93,7 +95,12 @@ public class OdometryCorrection implements Runnable {
       correctionEnd = System.currentTimeMillis();
       if (correctionEnd - correctionStart < CORRECTION_PERIOD) {
         try {
-          Thread.sleep(CORRECTION_PERIOD - (correctionEnd - correctionStart));
+        	if (hitLine) {
+        		Thread.sleep(100 + CORRECTION_PERIOD - (correctionEnd - correctionStart));
+        	} else {
+        		Thread.sleep(CORRECTION_PERIOD - (correctionEnd - correctionStart));
+        	}
+          
         } catch (InterruptedException e) {
           // there is nothing to be done here
         }

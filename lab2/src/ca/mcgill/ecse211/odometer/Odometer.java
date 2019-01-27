@@ -20,6 +20,8 @@ public class Odometer extends OdometerData implements Runnable {
   // Motors and related variables
   private int leftMotorTachoCount;
   private int rightMotorTachoCount;
+  private int lastLeftMotorTachoCount;
+  private int lastRightMotorTachoCount;
   private EV3LargeRegulatedMotor leftMotor;
   private EV3LargeRegulatedMotor rightMotor;
 
@@ -51,6 +53,8 @@ public class Odometer extends OdometerData implements Runnable {
 
     this.leftMotorTachoCount = 0;
     this.rightMotorTachoCount = 0;
+    this.lastLeftMotorTachoCount = 0;
+    this.lastRightMotorTachoCount = 0;
 
     this.TRACK = TRACK;
     this.WHEEL_RAD = WHEEL_RAD;
@@ -110,17 +114,17 @@ public class Odometer extends OdometerData implements Runnable {
       double distL, distR, deltaD, dTheta, dX, dY, Theta;
       Theta = odo.getTheta();
            
-      distL = 3.14159*WHEEL_RAD*leftMotorTachoCount/180;
-      distR = 3.14159*WHEEL_RAD*rightMotorTachoCount/180;
+      distL = 3.14159 * WHEEL_RAD * (leftMotorTachoCount - lastLeftMotorTachoCount) / 180;
+      distR = 3.14159 * WHEEL_RAD * (rightMotorTachoCount - lastRightMotorTachoCount) / 180;
+      
+      lastLeftMotorTachoCount = leftMotorTachoCount;
+      lastRightMotorTachoCount = rightMotorTachoCount;
       
       deltaD = 0.5*(distL + distR);
       dTheta = (distL - distR)/TRACK;
       Theta = Math.toRadians(Theta) + dTheta;
       dX = deltaD * Math.sin(Theta);
       dY = deltaD * Math.cos(Theta);
-      
-      leftMotor.resetTachoCount();
-      rightMotor.resetTachoCount();
       
       // TODO Update odometer values with new calculated values
       odo.update(dX, dY, Math.toDegrees(dTheta));
