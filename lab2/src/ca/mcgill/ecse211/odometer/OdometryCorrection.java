@@ -10,16 +10,17 @@ import lejos.robotics.SampleProvider;
 import lejos.hardware.Sound;
 
 public class OdometryCorrection implements Runnable {
-  private static final long CORRECTION_PERIOD = 10;
-  private static final double TILE_LENGTH = 30.48;
-  private static final double LIGHT_THRESHOLD = 0.10;
-  private static final double START_X = 0.0;
-  private static final double START_Y = 0.0;
-  private static final double LIGHT_OFFSET = 2.7;
-  
+  private static final int MAX_DOUBLE_LINE = 1200;		// max time between consecutive line hits
+  private static final long CORRECTION_PERIOD = 10;		// correction period
+  private static final double TILE_LENGTH = 30.48;		// length of a single square on competition board
+  private static final double LIGHT_THRESHOLD = 0.10;	// light value that signals a line is crossed, determined experimentally 
+  private static final double START_X = 0.0;			// starting X coordinate of robot
+  private static final double START_Y = 0.0;			// starting Y coordinate of robot
+  private static final double LIGHT_OFFSET = 2.7;		// measured distance from light sensor to center of robot
+  														//    which is directly between the wheels
   private Odometer odometer;
 
-  private static Port lsPort = LocalEV3.get().getPort("S1");
+  private static Port lsPort = LocalEV3.get().getPort("S1"); 
   private SampleProvider sampleProvider;
   private SensorModes lightSensor;
   private float[] lsData;
@@ -73,34 +74,34 @@ public class OdometryCorrection implements Runnable {
     	  hitLine = true;
     	  Sound.beep();
     	  
-    	  if (theta <= 10 || theta >= 350) {
+    	  if (theta <= 10 || theta >= 350) { // facing North
     		  odometer.setY(numYLines*TILE_LENGTH - LIGHT_OFFSET);
     		  numYLines++;
-    	  } else if (theta >= 80 && theta <= 100) {
+    	  } else if (theta >= 80 && theta <= 100) { // facing East
     		  odometer.setX(numXLines*TILE_LENGTH - LIGHT_OFFSET);
     		  numXLines++;
-    	  } else if (theta >= 170 && theta <= 190) {
+    	  } else if (theta >= 170 && theta <= 190) { // facing South
     		  numYLines--;
     		  odometer.setY(numYLines*TILE_LENGTH + LIGHT_OFFSET);
-    	  } else if (theta >= 260 && theta <= 280) {
+    	  } else if (theta >= 260 && theta <= 280) { // facing West
     		  numXLines--;
     		  odometer.setX(numXLines*TILE_LENGTH + LIGHT_OFFSET);
     	  }
     	  
       }
-      
-      
 
       // this ensure the odometry correction occurs only once every period
       correctionEnd = System.currentTimeMillis();
+      if (hitLine) { // add extra delay if a line was just passed
+  		try {
+			Thread.sleep(MAX_DOUBLE_LINE);
+		} catch (InterruptedException e) {
+			// do nothing
+		}
+  	  }
       if (correctionEnd - correctionStart < CORRECTION_PERIOD) {
         try {
-        	if (hitLine) {
-        		Thread.sleep(100 + CORRECTION_PERIOD - (correctionEnd - correctionStart));
-        	} else {
-        		Thread.sleep(CORRECTION_PERIOD - (correctionEnd - correctionStart));
-        	}
-          
+          Thread.sleep(CORRECTION_PERIOD - (correctionEnd - correctionStart));          
         } catch (InterruptedException e) {
           // there is nothing to be done here
         }
