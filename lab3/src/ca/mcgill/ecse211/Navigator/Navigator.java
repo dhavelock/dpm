@@ -1,47 +1,48 @@
 package ca.mcgill.ecse211.Navigator;
 
-import ca.mcgill.ecse211.odometer.OdometerData;
 import ca.mcgill.ecse211.lab3.Lab3;
 import ca.mcgill.ecse211.odometer.Odometer;
 import ca.mcgill.ecse211.odometer.OdometerExceptions;
-import lejos.hardware.Sound;
-import lejos.hardware.motor.EV3LargeRegulatedMotor;
 
-public class Navigator implements Runnable {
+public class Navigator extends Thread {
   
   private static final double SQUARE_LENGTH = 30.48;
-  private static final int FORWARD_SPEED = 220;
+  private static final int FORWARD_SPEED = 200;
   private static final int ROTATE_SPEED = 150;
+  private static final double CM_ERR = 1.0;
+  private static final int TRAVEL_SLEEP = 100;
+  private static final int DIST_THRESHOLD = 15;
+  private static final double DIST_AVOID = 34;
     
   private double x;
   private double y;
   private double theta;
+  private boolean isAvoiding;
   
-  private int currWayPointX;
-  private int currWayPointY;
-  private int currWayPoint;
-  
-  private int lastWayPointX;
-  private int lastWayPointY;
-    
+  private NavigatorObstacle obstacleAvoidance;    
   private Odometer odometer;
   
-  public Navigator(Odometer odo, int[] wayPoints) throws OdometerExceptions {
+  public Navigator(Odometer odo, boolean isAvoiding) throws OdometerExceptions {
                                               // manipulation methods    
     double[] odoData = odo.getXYT();
     this.x = odoData[0];
     this.y = odoData[1];
     this.theta = odoData[2];
-    
-    this.currWayPointX = wayPoints[0];
-    this.currWayPointY = wayPoints[1];
-    this.currWayPoint = 0;
-    
-    this.lastWayPointX = 0;
-    this.lastWayPointY = 0;
-    
     this.odometer = Odometer.getOdometer();
+    this.isAvoiding = isAvoiding;
+    this.obstacleAvoidance = null;
 
+  }
+  
+  public Navigator(Odometer odo, NavigatorObstacle obstacleAvoidance, boolean isAvoiding) throws OdometerExceptions {
+    // manipulation methods    
+    double[] odoData = odo.getXYT();
+    this.x = odoData[0];
+    this.y = odoData[1];
+    this.theta = odoData[2];
+    this.odometer = Odometer.getOdometer();
+    this.isAvoiding = isAvoiding;
+    this.obstacleAvoidance = obstacleAvoidance;
   }
   
   private void setOdoData(double[] odoData) {
@@ -72,6 +73,9 @@ public class Navigator implements Runnable {
       Lab3.leftMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 360-angleToRotate), true);
       Lab3.rightMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 360-angleToRotate), false);
     }
+    
+    Lab3.leftMotor.setSpeed(0);
+    Lab3.rightMotor.setSpeed(0);
 
   }
   
@@ -83,95 +87,164 @@ public class Navigator implements Runnable {
     return convertDistance(radius, Math.PI * width * angle / 360.0);
   }
   
-  public int[] getCurrWayPoint() {
-    int[] wayPoint = new int[2];
+  private double calcNewHeading(double X, double Y) {
+    double[] odoData = odometer.getXYT();
+    setOdoData(odoData);
     
-    wayPoint[0] = this.currWayPointX;
-    wayPoint[1] = this.currWayPointY;
+    double newHeading;
+    double dx = X - x;
+    double dy = Y - y;
     
-    return wayPoint;
+    if (dy == 0) {
+      if (dx < 0) {
+        newHeading = 270;
+      } else {
+        newHeading = 90;
+      }
+    } else {              
+      newHeading = Math.abs(Math.toDegrees(Math.atan((double) dx / (double) dy)));
+      
+      if (dx >= 0 && dy < 0) {
+        newHeading = 180 - newHeading;
+      }
+      
+      if (dx <= 0 && dy > 0) {
+        newHeading = 360 - newHeading;
+      }
+      
+      if (dx < 0 && dy < 0) {
+        newHeading = 180 + newHeading;
+      }
+    }
+    return newHeading;
   }
   
-  public void run() {
+  public void travelTo(double X, double Y) {
     
-    odometer.setXYT(0, 0, 0);
+    X = X*SQUARE_LENGTH;
+    Y = Y*SQUARE_LENGTH;
         
-    while (true) {
-      
-      double[] odoData = odometer.getXYT();
-      setOdoData(odoData);
-      
-      System.out.println(x + ", " + y + ", " + theta + " | " + currWayPointX + ", " + currWayPointY);
-      
-      if (Math.abs(currWayPointX*SQUARE_LENGTH - x) < 2 && Math.abs(currWayPointY*SQUARE_LENGTH - y) < 2) {
-        Lab3.leftMotor.stop();
-        Lab3.rightMotor.stop();
-        currWayPoint = currWayPoint + 2;
-      } 
-            
-      if (currWayPoint == Lab3.wayPoints.length) {
-        System.exit(0);
-      } else if (Lab3.leftMotor.isMoving() == false && Lab3.rightMotor.isMoving() == false) {
-        currWayPointX = Lab3.wayPoints[currWayPoint];
-        currWayPointY = Lab3.wayPoints[currWayPoint+1];
-        
-        if (currWayPoint >= 2) {
-          lastWayPointX = Lab3.wayPoints[currWayPoint-2];
-          lastWayPointY = Lab3.wayPoints[currWayPoint-1];
-        }
-        
-        System.out.println("waypoint = " + currWayPoint);
-        System.out.println(" currX= " + currWayPointX + " currY= " + currWayPointY);
-        System.out.println(" lastX= " + lastWayPointX + " lastY= " + lastWayPointY);
-        
-        double newHeading;
-        int dx = currWayPointX - lastWayPointX;
-        int dy = currWayPointY - lastWayPointY;
-        
-        if (dy == 0) {
-          System.out.println("Ys are equal");
-          if (dx < 0) {
-            newHeading = 270;
-          } else {
-            newHeading = 90;
-          }
-        } else {              
-          newHeading = Math.abs(Math.toDegrees(Math.atan((double) dx / (double) dy)));
-          
-          System.out.println("dx " + dx + " dy " + dy);
-          System.out.println("** heading " + newHeading);
-          
-          if (dx >= 0 && dy < 0) {
-            newHeading = 180 - newHeading;
-          }
-          
-          if (dx <= 0 && dy > 0) {
-            newHeading = 360 - newHeading;
-          }
-          
-          if (dx < 0 && dy < 0) {
-            newHeading = 180 + newHeading;
-          }
-        }
-        
-        System.out.println("new heading" + newHeading);
-        turnTo(newHeading);
-        
-        Lab3.leftMotor.setSpeed(FORWARD_SPEED);
-        Lab3.rightMotor.setSpeed(FORWARD_SPEED);
-        
-        double travelDist = Math.sqrt(Math.pow(currWayPointX*SQUARE_LENGTH - x, 2) + Math.pow(currWayPointY*SQUARE_LENGTH - y, 2));
+    double[] odoData = odometer.getXYT();
+    setOdoData(odoData);
+    
+    System.out.println(x + " " + y + " " + theta);
 
-        Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, travelDist), true);
-        Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, travelDist), false);
-        
+    double newHeading;
+    double dx = X - x;
+    double dy = Y - y;
+    
+    if (dy == 0) {
+      if (dx < 0) {
+        newHeading = 270;
+      } else {
+        newHeading = 90;
       }
-      try {
-        Thread.sleep(10);          
-      } catch (InterruptedException e) {
-        // there is nothing to be done here
+    } else {              
+      newHeading = Math.abs(Math.toDegrees(Math.atan((double) dx / (double) dy)));
+      
+      if (dx >= 0 && dy < 0) {
+        newHeading = 180 - newHeading;
+      }
+      
+      if (dx <= 0 && dy > 0) {
+        newHeading = 360 - newHeading;
+      }
+      
+      if (dx < 0 && dy < 0) {
+        newHeading = 180 + newHeading;
       }
     }
     
+    turnTo(newHeading);
+    
+    System.out.println("Travel to: (" + X + ", " + Y + ")");
+    System.out.println("current  : (" + x + ", " + y + ")");
+    
+    while (isTravelling(X, Y)) {
+      odoData = odometer.getXYT();
+      setOdoData(odoData);
+      
+      Lab3.leftMotor.setSpeed(FORWARD_SPEED);
+      Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+      Lab3.leftMotor.forward();
+      Lab3.rightMotor.forward();
+      
+      try {
+        Thread.sleep(TRAVEL_SLEEP);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      
+      // obstacle avoidance
+      int distance = 0;
+      if (isAvoiding) {
+          distance = obstacleAvoidance.getDistance();
+          System.out.println("dist: " + distance);
+      }
+      if (isAvoiding && distance <= DIST_THRESHOLD) {
+        
+        // Reverse
+        Lab3.leftMotor.setSpeed(FORWARD_SPEED);
+        Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+        
+        Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -12), true);
+        Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -12), false);
+        
+        // Turn
+        Lab3.leftMotor.setSpeed(ROTATE_SPEED);
+        Lab3.rightMotor.setSpeed(ROTATE_SPEED);
+
+        Lab3.leftMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 45.0), true);
+        Lab3.rightMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 45.0), false);
+        
+        // Avoid
+        Lab3.leftMotor.setSpeed(FORWARD_SPEED);
+        Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+        
+        Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 1.41 * DIST_AVOID), true);
+        Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 1.41 * DIST_AVOID), false);
+
+        turnTo(calcNewHeading(X, Y));
+      }
+      
+    }
+    Lab3.leftMotor.setSpeed(0);
+    Lab3.rightMotor.setSpeed(0);
+  }
+  
+  private double[] getFutureCoords() {
+    double[] futureLoc = new double[3];
+    double thetaRad = Math.toRadians(theta);
+    
+    if (theta >= 0 && theta < 90) { // facing North
+      futureLoc[0] = x + DIST_AVOID*Math.sin(thetaRad);
+      futureLoc[1] = y + DIST_AVOID*Math.cos(thetaRad);
+      
+    } else if (theta >= 90 && theta < 180) { // facing East
+      futureLoc[0] = x + DIST_AVOID*Math.abs(Math.sin(thetaRad));
+      futureLoc[1] = y - DIST_AVOID*Math.abs(Math.cos(thetaRad));
+    } else if (theta >= 180 && theta < 270) { // facing South
+      futureLoc[0] = x - DIST_AVOID*Math.abs(Math.sin(thetaRad));
+      futureLoc[1] = y - DIST_AVOID*Math.abs(Math.cos(thetaRad));
+    } else if (theta >= 279 && theta < 360) { // facing West
+      futureLoc[0] = x - DIST_AVOID*Math.abs(Math.sin(thetaRad));
+      futureLoc[1] = y + DIST_AVOID*Math.abs(Math.cos(thetaRad));
+    }
+    
+    return futureLoc;
+  }
+  
+  private double absoluteDist(double x1, double y1, double x2, double y2) {
+    return Math.sqrt(Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2));
+  }
+  
+  private boolean isTravelling(double X, double Y) {
+    return !(Math.abs(X - x) < CM_ERR && Math.abs(Y - y) < CM_ERR);
+  }
+  
+  public void run() {
+    for (int[] wayPoint : Lab3.WAYPOINTS) {
+      travelTo(wayPoint[0], wayPoint[1]);
+    }
   }
 }
