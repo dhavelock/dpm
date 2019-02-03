@@ -20,32 +20,32 @@ public class Lab3 {
   public static final EV3LargeRegulatedMotor rightMotor =
 		  new EV3LargeRegulatedMotor(LocalEV3.get().getPort("D"));
   private static final TextLCD lcd = LocalEV3.get().getTextLCD();
-  public static final double WHEEL_RAD = 2.2;
-  public static final double TRACK = 13.382; 
+  
+  public static final double WHEEL_RAD = 2.2;     // Measured and tweaked Wheel radius
+  public static final double TRACK = 13.382;      // Measured and tweaked Track length
   
   public static final int[][] WAYPOINTS = {{1,0}, {2,1}, {2,2}, {0,2}, {1,1}};
-  // {1,1}, {0,2}, {2,2}, {2,1}, {1,0}
-  // {0,2}, {1,1}, {2,2}, {2,1}, {1,0}
-  // {1,0}, {2,1}, {2,2}, {0,2}, {1,1}
+  // 1) {0,2}, {1,1}, {2,2}, {2,1}, {1,0}
+  // 2) {1,1}, {0,2}, {2,2}, {2,1}, {1,0}
+  // 3) {1,0}, {2,1}, {2,2}, {0,2}, {1,1}
+  // 4) {0,1}, {1,2}, {1,0}, {2,1}, {2,2}
 
   public static void main(String[] args) throws OdometerExceptions {
 	
 	int buttonChoice;
 	  
-	// Odometer related objects
+	// Initialize odometer
 	Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
 	
 	
-	// Navigator object
+	// Initialize NavigatorObstacle 
 	NavigatorObstacle obstacleAvoidance = new NavigatorObstacle();
-	
-	Display odometryDisplay = new Display(lcd);
-	
+		
 	do {
       // clear the display
       lcd.clear();
 
-      // ask the user whether the motors should drive in a square or float
+      // ask the user whether the motors should use obstacle avoidance or not
       lcd.drawString("< Left | Right >", 0, 0);
       lcd.drawString("       |        ", 0, 1);
       lcd.drawString("Regular| Avoid  ", 0, 2);
@@ -55,10 +55,9 @@ public class Lab3 {
       buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
     } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
 	
-	if (buttonChoice == Button.ID_LEFT) {
-
-      // Display changes in position as wheels are (manually) moved
+  	if (buttonChoice == Button.ID_LEFT) {
       
+       // initialize and start threads
       Thread odoThread = new Thread(odometer);
       odoThread.start();
       Navigator navigator = new Navigator(odometer, false);
@@ -72,9 +71,9 @@ public class Lab3 {
   	  SensorModes usSensor = new EV3UltrasonicSensor(usPort); // usSensor is the instance
   	  SampleProvider usDistance = usSensor.getMode("Distance"); // usDistance provides samples from
   	                                                            // this instance
-  	  
   	  float[] usData = new float[usDistance.sampleSize()]; 
   	  
+  	  // initialize and start threads
       Thread odoThread = new Thread(odometer);
       odoThread.start();
       UltrasonicPoller usPoller = new UltrasonicPoller(usDistance, usData, obstacleAvoidance);

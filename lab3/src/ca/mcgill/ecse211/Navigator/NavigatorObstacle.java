@@ -28,7 +28,6 @@ public class NavigatorObstacle extends Thread implements UltrasonicController {
       filterControl = 0;
       this.distance = distance;
     }
-        
     
   }
   

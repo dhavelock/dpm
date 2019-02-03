@@ -6,24 +6,24 @@ import ca.mcgill.ecse211.odometer.OdometerExceptions;
 
 public class Navigator extends Thread {
   
-  private static final double SQUARE_LENGTH = 30.48;
-  private static final int FORWARD_SPEED = 200;
-  private static final int ROTATE_SPEED = 150;
-  private static final double CM_ERR = 1.0;
-  private static final int TRAVEL_SLEEP = 100;
-  private static final int DIST_THRESHOLD = 15;
-  private static final double DIST_AVOID = 34;
+  private static final double SQUARE_LENGTH = 30.48;  // Length of single square on floor
+  private static final int FORWARD_SPEED = 200;       // Regular forward speed
+  private static final int ROTATE_SPEED = 150;        // Rotate speed
+  private static final double CM_ERR = 1.0;           // Range to make it to target
+  private static final int TRAVEL_SLEEP = 100;        // Time for this thread to sleep
+  private static final int DIST_THRESHOLD = 12;       // Closest distance to obstacle
+  private static final double DIST_AVOID = 37;        // Distance to travel around obstacle
+  private static final double REVERSE_DIST = 5;       // Distance to reverse when obstacle is encountered
     
-  private double x;
-  private double y;
-  private double theta;
-  private boolean isAvoiding;
+  private double x;             // x coordinate
+  private double y;             // y coordinate
+  private double theta;         // angle with respect to North (y axis)
+  private boolean isAvoiding;   // true if obstacles involved. False otherwise
   
   private NavigatorObstacle obstacleAvoidance;    
   private Odometer odometer;
   
   public Navigator(Odometer odo, boolean isAvoiding) throws OdometerExceptions {
-                                              // manipulation methods    
     double[] odoData = odo.getXYT();
     this.x = odoData[0];
     this.y = odoData[1];
@@ -34,8 +34,8 @@ public class Navigator extends Thread {
 
   }
   
+  
   public Navigator(Odometer odo, NavigatorObstacle obstacleAvoidance, boolean isAvoiding) throws OdometerExceptions {
-    // manipulation methods    
     double[] odoData = odo.getXYT();
     this.x = odoData[0];
     this.y = odoData[1];
@@ -45,12 +45,20 @@ public class Navigator extends Thread {
     this.obstacleAvoidance = obstacleAvoidance;
   }
   
+  /**
+   * Sets private data members 
+   * @param odoData
+   */
   private void setOdoData(double[] odoData) {
     this.x = odoData[0];
     this.y = odoData[1];
     this.theta = odoData[2];
   }
   
+  /**
+   * Rotates robot to newTheta, taking into account the current value of theta
+   * @param newTheta
+   */
   private void turnTo (double newTheta) {
     
     Lab3.leftMotor.setSpeed(ROTATE_SPEED);
@@ -87,6 +95,12 @@ public class Navigator extends Thread {
     return convertDistance(radius, Math.PI * width * angle / 360.0);
   }
   
+  /**
+   * calculates the angle to (X, Y) assuming an initial heading of 0 degrees
+   * @param X
+   * @param Y
+   * @return angle between 0 and 360 degrees
+   */
   private double calcNewHeading(double X, double Y) {
     double[] odoData = odometer.getXYT();
     setOdoData(odoData);
@@ -119,41 +133,79 @@ public class Navigator extends Thread {
     return newHeading;
   }
   
+  /**
+   * Reverses robot and maneuvers around an obstacle at a 45 degree angle to the left
+   */
+  private void avoidLeft() {
+    // Reverse
+    Lab3.leftMotor.setSpeed(FORWARD_SPEED);
+    Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+    
+    Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), true);
+    Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), false);
+    
+    // Turn
+    Lab3.leftMotor.setSpeed(ROTATE_SPEED);
+    Lab3.rightMotor.setSpeed(ROTATE_SPEED);
+
+    Lab3.leftMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 45.0), true);
+    Lab3.rightMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 45.0), false);
+    
+    // Avoid
+    Lab3.leftMotor.setSpeed(FORWARD_SPEED);
+    Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+    
+    Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 1.41 * DIST_AVOID), true);
+    Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 1.41 * DIST_AVOID), false);
+  }
+  
+  /**
+   * Reverses robot and maneuvers around an obstacle at a 45 degree angle to the right
+   */
+  private void avoidRight() {
+    // Reverse
+    Lab3.leftMotor.setSpeed(FORWARD_SPEED);
+    Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+    
+    Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), true);
+    Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), false);
+    
+    // Turn
+    Lab3.leftMotor.setSpeed(ROTATE_SPEED);
+    Lab3.rightMotor.setSpeed(ROTATE_SPEED);
+
+    Lab3.leftMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 45.0), true);
+    Lab3.rightMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 45.0), false);
+    
+    // Avoid
+    Lab3.leftMotor.setSpeed(FORWARD_SPEED);
+    Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+    
+    Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 1.41 * DIST_AVOID), true);
+    Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 1.41 * DIST_AVOID), false);
+  }
+  
+  /**
+   * Checks if the robot's x and y is within CM_ERR centimetres of X and Y
+   * @param X
+   * @param Y
+   * @return false if robot reaches destination. true otherwise
+   */
+  private boolean isTravelling(double X, double Y) {
+    return !(Math.abs(X - x) < CM_ERR && Math.abs(Y - y) < CM_ERR);
+  }
+  
+  /**
+   * Given X and Y, this method will navigate the robot to (X, Y)
+   * @param X
+   * @param Y
+   */
   public void travelTo(double X, double Y) {
     
     X = X*SQUARE_LENGTH;
     Y = Y*SQUARE_LENGTH;
-        
-    double[] odoData = odometer.getXYT();
-    setOdoData(odoData);
     
-    System.out.println(x + " " + y + " " + theta);
-
-    double newHeading;
-    double dx = X - x;
-    double dy = Y - y;
-    
-    if (dy == 0) {
-      if (dx < 0) {
-        newHeading = 270;
-      } else {
-        newHeading = 90;
-      }
-    } else {              
-      newHeading = Math.abs(Math.toDegrees(Math.atan((double) dx / (double) dy)));
-      
-      if (dx >= 0 && dy < 0) {
-        newHeading = 180 - newHeading;
-      }
-      
-      if (dx <= 0 && dy > 0) {
-        newHeading = 360 - newHeading;
-      }
-      
-      if (dx < 0 && dy < 0) {
-        newHeading = 180 + newHeading;
-      }
-    }
+    double newHeading = calcNewHeading(X, Y);
     
     turnTo(newHeading);
     
@@ -161,7 +213,7 @@ public class Navigator extends Thread {
     System.out.println("current  : (" + x + ", " + y + ")");
     
     while (isTravelling(X, Y)) {
-      odoData = odometer.getXYT();
+      double[] odoData = odometer.getXYT();
       setOdoData(odoData);
       
       Lab3.leftMotor.setSpeed(FORWARD_SPEED);
@@ -179,30 +231,20 @@ public class Navigator extends Thread {
       int distance = 0;
       if (isAvoiding) {
           distance = obstacleAvoidance.getDistance();
-          System.out.println("dist: " + distance);
+          System.out.println("dist: " + distance + " | " + x + ", " + y + ", " + theta);
       }
       if (isAvoiding && distance <= DIST_THRESHOLD) {
         
-        // Reverse
-        Lab3.leftMotor.setSpeed(FORWARD_SPEED);
-        Lab3.rightMotor.setSpeed(FORWARD_SPEED);
-        
-        Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -12), true);
-        Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -12), false);
-        
-        // Turn
-        Lab3.leftMotor.setSpeed(ROTATE_SPEED);
-        Lab3.rightMotor.setSpeed(ROTATE_SPEED);
+        boolean turnLeft =    (y >= 1.8*SQUARE_LENGTH && theta >= 255 && theta <= 285)
+                           || (x >= 1.8*SQUARE_LENGTH && (theta >= 345 || theta <= 15))
+                           || (y <= 0.2*SQUARE_LENGTH && theta >= 75 && theta <= 105)
+                           || (x <= 0.2*SQUARE_LENGTH && theta >= 165 && theta <= 195);
 
-        Lab3.leftMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 45.0), true);
-        Lab3.rightMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 45.0), false);
-        
-        // Avoid
-        Lab3.leftMotor.setSpeed(FORWARD_SPEED);
-        Lab3.rightMotor.setSpeed(FORWARD_SPEED);
-        
-        Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 1.41 * DIST_AVOID), true);
-        Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 1.41 * DIST_AVOID), false);
+        if (turnLeft) {
+          avoidLeft();
+        } else {
+          avoidRight();
+        }
 
         turnTo(calcNewHeading(X, Y));
       }
@@ -210,36 +252,6 @@ public class Navigator extends Thread {
     }
     Lab3.leftMotor.setSpeed(0);
     Lab3.rightMotor.setSpeed(0);
-  }
-  
-  private double[] getFutureCoords() {
-    double[] futureLoc = new double[3];
-    double thetaRad = Math.toRadians(theta);
-    
-    if (theta >= 0 && theta < 90) { // facing North
-      futureLoc[0] = x + DIST_AVOID*Math.sin(thetaRad);
-      futureLoc[1] = y + DIST_AVOID*Math.cos(thetaRad);
-      
-    } else if (theta >= 90 && theta < 180) { // facing East
-      futureLoc[0] = x + DIST_AVOID*Math.abs(Math.sin(thetaRad));
-      futureLoc[1] = y - DIST_AVOID*Math.abs(Math.cos(thetaRad));
-    } else if (theta >= 180 && theta < 270) { // facing South
-      futureLoc[0] = x - DIST_AVOID*Math.abs(Math.sin(thetaRad));
-      futureLoc[1] = y - DIST_AVOID*Math.abs(Math.cos(thetaRad));
-    } else if (theta >= 279 && theta < 360) { // facing West
-      futureLoc[0] = x - DIST_AVOID*Math.abs(Math.sin(thetaRad));
-      futureLoc[1] = y + DIST_AVOID*Math.abs(Math.cos(thetaRad));
-    }
-    
-    return futureLoc;
-  }
-  
-  private double absoluteDist(double x1, double y1, double x2, double y2) {
-    return Math.sqrt(Math.pow(x1-x2, 2) + Math.pow(y1-y2, 2));
-  }
-  
-  private boolean isTravelling(double X, double Y) {
-    return !(Math.abs(X - x) < CM_ERR && Math.abs(Y - y) < CM_ERR);
   }
   
   public void run() {
