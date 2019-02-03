@@ -1,6 +1,5 @@
 package ca.mcgill.ecse211.Navigator;
 
-import ca.mcgill.ecse211.lab3.Lab3;
 import ca.mcgill.ecse211.odometer.Odometer;
 import ca.mcgill.ecse211.odometer.OdometerExceptions;
 
@@ -23,25 +22,35 @@ public class Navigator extends Thread {
   private NavigatorObstacle obstacleAvoidance;    
   private Odometer odometer;
   
-  public Navigator(Odometer odo, boolean isAvoiding) throws OdometerExceptions {
+  /**
+   * Constructor for No obstacle avoidance
+   * @param odo
+   * @throws OdometerExceptions
+   */
+  public Navigator(Odometer odo) throws OdometerExceptions {
     double[] odoData = odo.getXYT();
     this.x = odoData[0];
     this.y = odoData[1];
     this.theta = odoData[2];
     this.odometer = Odometer.getOdometer();
-    this.isAvoiding = isAvoiding;
+    this.isAvoiding = false;
     this.obstacleAvoidance = null;
 
   }
   
-  
-  public Navigator(Odometer odo, NavigatorObstacle obstacleAvoidance, boolean isAvoiding) throws OdometerExceptions {
+  /**
+   * Constructed for when obstacle avoidance is needed
+   * @param odo
+   * @param obstacleAvoidance
+   * @throws OdometerExceptions
+   */
+  public Navigator(Odometer odo, NavigatorObstacle obstacleAvoidance) throws OdometerExceptions {
     double[] odoData = odo.getXYT();
     this.x = odoData[0];
     this.y = odoData[1];
     this.theta = odoData[2];
     this.odometer = Odometer.getOdometer();
-    this.isAvoiding = isAvoiding;
+    this.isAvoiding = true;
     this.obstacleAvoidance = obstacleAvoidance;
   }
   
@@ -61,6 +70,7 @@ public class Navigator extends Thread {
    */
   private void turnTo (double newTheta) {
     
+    // set motor speed for rotation
     Lab3.leftMotor.setSpeed(ROTATE_SPEED);
     Lab3.rightMotor.setSpeed(ROTATE_SPEED);
  
@@ -72,8 +82,7 @@ public class Navigator extends Thread {
     
     System.out.println("angle to rotate" + angleToRotate);
     
-    
-    
+    // ensure minimal angle is always made
     if (angleToRotate < 180) {
       Lab3.leftMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, angleToRotate), true);
       Lab3.rightMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, angleToRotate), false);
@@ -144,7 +153,7 @@ public class Navigator extends Thread {
     Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), true);
     Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), false);
     
-    // Turn
+    // Turn Left
     Lab3.leftMotor.setSpeed(ROTATE_SPEED);
     Lab3.rightMotor.setSpeed(ROTATE_SPEED);
 
@@ -170,7 +179,7 @@ public class Navigator extends Thread {
     Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), true);
     Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), false);
     
-    // Turn
+    // Turn Right
     Lab3.leftMotor.setSpeed(ROTATE_SPEED);
     Lab3.rightMotor.setSpeed(ROTATE_SPEED);
 
@@ -202,32 +211,36 @@ public class Navigator extends Thread {
    */
   public void travelTo(double X, double Y) {
     
+    // convert coordinates to usable values by odometer
     X = X*SQUARE_LENGTH;
     Y = Y*SQUARE_LENGTH;
     
+    // calculate heading and point robot 
     double newHeading = calcNewHeading(X, Y);
-    
     turnTo(newHeading);
     
     System.out.println("Travel to: (" + X + ", " + Y + ")");
     System.out.println("current  : (" + x + ", " + y + ")");
     
+    // move forward robot until it reaches the point (X, Y)
     while (isTravelling(X, Y)) {
       double[] odoData = odometer.getXYT();
       setOdoData(odoData);
       
+      // move forward
       Lab3.leftMotor.setSpeed(FORWARD_SPEED);
       Lab3.rightMotor.setSpeed(FORWARD_SPEED);
       Lab3.leftMotor.forward();
       Lab3.rightMotor.forward();
       
+      // put thread to sleep
       try {
         Thread.sleep(TRAVEL_SLEEP);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
       
-      // obstacle avoidance
+      // obstacle avoidance, only if isAvoiding = true
       int distance = 0;
       if (isAvoiding) {
           distance = obstacleAvoidance.getDistance();

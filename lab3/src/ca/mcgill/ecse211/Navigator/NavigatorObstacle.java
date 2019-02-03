@@ -2,7 +2,7 @@ package ca.mcgill.ecse211.Navigator;
 
 public class NavigatorObstacle extends Thread implements UltrasonicController {
 
-  private static final int FILTER_OUT = 20;
+  private static final int FILTER_OUT = 20;  // Number of times to check value when filtering
   
   private int distance;
   private int filterControl;

@@ -1,4 +1,4 @@
-package ca.mcgill.ecse211.lab3;
+package ca.mcgill.ecse211.Navigator;
 
 import lejos.hardware.ev3.LocalEV3;
 import lejos.hardware.lcd.TextLCD;
@@ -9,7 +9,6 @@ import lejos.hardware.sensor.SensorModes;
 import lejos.robotics.SampleProvider;
 import ca.mcgill.ecse211.odometer.*;
 import lejos.hardware.Button;
-import ca.mcgill.ecse211.Navigator.*;
 
 public class Lab3 {
 	
@@ -60,7 +59,7 @@ public class Lab3 {
        // initialize and start threads
       Thread odoThread = new Thread(odometer);
       odoThread.start();
-      Navigator navigator = new Navigator(odometer, false);
+      Navigator navigator = new Navigator(odometer);
       navigator.start();
       
     }
@@ -78,7 +77,7 @@ public class Lab3 {
       odoThread.start();
       UltrasonicPoller usPoller = new UltrasonicPoller(usDistance, usData, obstacleAvoidance);
       usPoller.start();
-      Navigator navigator = new Navigator(odometer, obstacleAvoidance, true);
+      Navigator navigator = new Navigator(odometer, obstacleAvoidance);
       navigator.start();
     }
   }
