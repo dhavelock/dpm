@@ -6,7 +6,8 @@ import ca.mcgill.ecse211.odometer.OdometerExceptions;
 public class Navigator extends Thread {
   
   private static final double SQUARE_LENGTH = 30.48;  // Length of single square on floor
-  private static final int FORWARD_SPEED = 200;       // Regular forward speed
+  private static final int FORWARD_SPEED = 180;       // Regular forward speed
+  private static final int REVERSE_SPEED = 130;       // Regular forward speed
   private static final int ROTATE_SPEED = 150;        // Rotate speed
   private static final double CM_ERR = 1.0;           // Range to make it to target
   private static final int TRAVEL_SLEEP = 100;        // Time for this thread to sleep
@@ -147,8 +148,8 @@ public class Navigator extends Thread {
    */
   private void avoidLeft() {
     // Reverse
-    Lab3.leftMotor.setSpeed(FORWARD_SPEED);
-    Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+    Lab3.leftMotor.setSpeed(REVERSE_SPEED);
+    Lab3.rightMotor.setSpeed(REVERSE_SPEED);
     
     Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), true);
     Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), false);
@@ -173,8 +174,8 @@ public class Navigator extends Thread {
    */
   private void avoidRight() {
     // Reverse
-    Lab3.leftMotor.setSpeed(FORWARD_SPEED);
-    Lab3.rightMotor.setSpeed(FORWARD_SPEED);
+    Lab3.leftMotor.setSpeed(REVERSE_SPEED);
+    Lab3.rightMotor.setSpeed(REVERSE_SPEED);
     
     Lab3.leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), true);
     Lab3.rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, -1 * REVERSE_DIST), false);

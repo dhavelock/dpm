@@ -31,32 +31,33 @@ public class Lab3 {
 
   public static void main(String[] args) throws OdometerExceptions {
 	
-	int buttonChoice;
-	  
-	// Initialize odometer
-	Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
-	
-	
-	// Initialize NavigatorObstacle 
-	NavigatorObstacle obstacleAvoidance = new NavigatorObstacle();
-		
-	do {
+  	int buttonChoice;
+  	  
+  	// Initialize odometer
+  	Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
+  	
+  	
+  	// Initialize NavigatorObstacle 
+  	NavigatorObstacle obstacleAvoidance = new NavigatorObstacle();
+  		
+  	do {
       // clear the display
       lcd.clear();
-
+  
       // ask the user whether the motors should use obstacle avoidance or not
       lcd.drawString("< Left | Right >", 0, 0);
       lcd.drawString("       |        ", 0, 1);
       lcd.drawString("Regular| Avoid  ", 0, 2);
       lcd.drawString("       |Obstacle", 0, 3);
       lcd.drawString("       |        ", 0, 4);
-
+  
       buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
     } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
 	
+	  //Left button initiates navigation with obstacle avoidance
   	if (buttonChoice == Button.ID_LEFT) {
       
-       // initialize and start threads
+      // initialize and start threads
       Thread odoThread = new Thread(odometer);
       odoThread.start();
       Navigator navigator = new Navigator(odometer);
@@ -64,6 +65,7 @@ public class Lab3 {
       
     }
 	
+  	// Right button initiates navigation with obstacle avoidance
   	if (buttonChoice == Button.ID_RIGHT) {
   
   	  @SuppressWarnings("resource") // Because we don't bother to close this resource
