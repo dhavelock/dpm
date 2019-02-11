@@ -15,15 +15,15 @@ import lejos.robotics.SampleProvider;
 
 public class Main {
   
-  private static final Port usPort = LocalEV3.get().getPort("S2");
+  private static final Port usPort = LocalEV3.get().getPort("S2");   // port for ultrasonic sensor
   public static final EV3LargeRegulatedMotor leftMotor =
-      new EV3LargeRegulatedMotor(LocalEV3.get().getPort("A"));
+      new EV3LargeRegulatedMotor(LocalEV3.get().getPort("A"));       // port for left motor
   public static final EV3LargeRegulatedMotor rightMotor =
-      new EV3LargeRegulatedMotor(LocalEV3.get().getPort("D"));
+      new EV3LargeRegulatedMotor(LocalEV3.get().getPort("D"));       // port for right motor
   private static final TextLCD lcd = LocalEV3.get().getTextLCD();
   
   public static final double WHEEL_RAD = 2.2;     // Measured and tweaked Wheel radius
-  public static final double TRACK = 13.2;      // Measured and tweaked Track length
+  public static final double TRACK = 13.2;        // Measured and tweaked Track length
   
   public static void main(String[] args) throws OdometerExceptions {
     
@@ -52,7 +52,7 @@ public class Main {
       buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
     } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_DOWN && buttonChoice != Button.ID_RIGHT);
   
-    //Left button initiates navigation with obstacle avoidance
+    // Left button initiates Falling Edge US Localization
     if (buttonChoice == Button.ID_LEFT) {
       
       // US Poller 
@@ -73,13 +73,16 @@ public class Main {
       Thread localizeThread = new Thread(usLocalizer);
       localizeThread.start();
       
+      // wait for button press while angle is being measured
       Button.waitForAnyPress();
       
+      // start light localization thread
       Thread lightLocalizeThread = new Thread(lightLocalizer);
       lightLocalizeThread.start();
       
     }
     
+    // Right button initiates Rising Edge US Localization
     if (buttonChoice == Button.ID_RIGHT) {
       
       // US Poller 
@@ -100,34 +103,10 @@ public class Main {
       Thread localizeThread = new Thread(usLocalizer);
       localizeThread.start();
       
+      // wait for button press while angle is being measured
       Button.waitForAnyPress();
       
-      Thread lightLocalizeThread = new Thread(lightLocalizer);
-      lightLocalizeThread.start();
-    }
-  
-    if (buttonChoice == Button.ID_DOWN) {
-      
-      // US Poller 
-      @SuppressWarnings("resource") // Because we don't bother to close this resource
-      SensorModes usSensor = new EV3UltrasonicSensor(usPort); // usSensor is the instance
-      SampleProvider usDistance = usSensor.getMode("Distance"); // usDistance provides samples from
-                                                                // this instance
-      float[] usData = new float[usDistance.sampleSize()]; 
-      
-      // Initialize localization
-      UltrasonicLocalizer usLocalizer = new UltrasonicLocalizer(2, dc);
-      
-      // initialize and start threads
-      Thread odoThread = new Thread(odometer);
-      odoThread.start();
-      UltrasonicPoller usPoller = new UltrasonicPoller(usDistance, usData, dc);
-      usPoller.start();
-      Thread localizeThread = new Thread(usLocalizer);
-      localizeThread.start();
-      
-      Button.waitForAnyPress();
-      
+      // start light localization thread
       Thread lightLocalizeThread = new Thread(lightLocalizer);
       lightLocalizeThread.start();
     }
