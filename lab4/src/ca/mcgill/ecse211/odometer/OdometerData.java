@@ -231,4 +231,48 @@ public class OdometerData {
 	    return t;
   }
 
+  
+  public double getX() {
+    double xGet = 0;
+      lock.lock();
+      try {
+        while (isReseting) { // If a reset operation is being executed, wait
+          // until it is over.
+          doneReseting.await(); // Using await() is lighter on the CPU
+          // than simple busy wait.
+        }
+
+        xGet = x;
+  
+      } catch (InterruptedException e) {
+        // Print exception to screen
+        e.printStackTrace();
+      } finally {
+        lock.unlock();
+      }
+  
+      return xGet;
+  }
+  
+  public double getY() {
+    double yGet = 0;
+      lock.lock();
+      try {
+        while (isReseting) { // If a reset operation is being executed, wait
+          // until it is over.
+          doneReseting.await(); // Using await() is lighter on the CPU
+          // than simple busy wait.
+        }
+
+        yGet = y;
+  
+      } catch (InterruptedException e) {
+        // Print exception to screen
+        e.printStackTrace();
+      } finally {
+        lock.unlock();
+      }
+  
+      return yGet;
+  }
 }
