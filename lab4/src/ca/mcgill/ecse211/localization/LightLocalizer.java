@@ -15,7 +15,7 @@ public class LightLocalizer extends Thread {
   private static final double LIGHT_THRESHOLD = 0.45; // light value that signals a line is crossed, determined experimentally 
   private static final int ROTATE_SPEED = 100;        // Wheel speed 
   private static final int SLEEP_TIME = 50;           // Time for this thread to sleep
-  private static final int MOVE_DIST = 10;            // Distance to move toward origin before light sensor routine
+  private static final int MOVE_DIST = 13;            // Distance to move toward origin before light sensor routine
   private static final double CM_ERR = 0.75;          // Error threshold for navigating to origin
 
   
